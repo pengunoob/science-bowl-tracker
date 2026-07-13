@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Track Science Bowl practice by student, question set, and round."
+    />
+    <title>Quark — Science Bowl Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=3" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="brand" id="homeButton" type="button" aria-label="Go to main menu">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="orbit orbit-one"></span>
+            <span class="orbit orbit-two"></span>
+            <span class="nucleus"></span>
+          </span>
+          <span>
+            <strong>Quark</strong>
+            <small>Science Bowl Tracker</small>
+          </span>
+        </button>
+
+        <nav class="top-nav" aria-label="Primary navigation">
+          <button class="nav-button" data-go-view="home" type="button">Home</button>
+          <button class="nav-button" data-go-view="session" type="button">Session</button>
+          <button class="nav-button" data-go-view="data" type="button">Student data</button>
+        </nav>
+
+        <span class="save-state" id="saveState">
+          <span class="save-dot"></span>
+          Saved on this device
+        </span>
+      </header>
+
+      <main>
+        <section class="view home-view" id="homeView">
+          <div class="home-hero">
+            <p class="eyebrow">Science Bowl practice, organized</p>
+            <h1>What would you like to do?</h1>
+            <p>
+              Run a practice session or open the complete student workbook.
+            </p>
+          </div>
+
+          <div class="menu-grid">
+            <button class="menu-card session-menu-card" id="startSessionButton" type="button">
+              <span class="menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7L8 5Z" />
+                </svg>
+              </span>
+              <span class="menu-copy">
+                <span class="menu-label">Practice</span>
+                <strong id="sessionMenuTitle">Start a session</strong>
+                <small id="sessionMenuCopy">
+                  Record each student's response as questions are read.
+                </small>
+              </span>
+              <span class="menu-arrow">→</span>
+            </button>
+
+            <button class="menu-card data-menu-card" id="viewDataButton" type="button">
+              <span class="menu-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 19V9m6 10V5m6 14v-7m4 7H2" />
+                </svg>
+              </span>
+              <span class="menu-copy">
+                <span class="menu-label">Workbook</span>
+                <strong>View student data</strong>
+                <small>
+                  Compare students and inspect every recorded question.
+                </small>
+              </span>
+              <span class="menu-arrow">→</span>
+            </button>
+          </div>
+
+          <section class="home-stats" aria-label="Tracker totals">
+            <div>
+              <span>Students</span>
+              <strong id="homeStudentCount">0</strong>
+            </div>
+            <div>
+              <span>Sessions</span>
+              <strong id="homeSessionCount">0</strong>
+            </div>
+            <div>
+              <span>Questions logged</span>
+              <strong id="homeQuestionCount">0</strong>
+            </div>
+            <div>
+              <span>Overall accuracy</span>
+              <strong id="homeAccuracy">—</strong>
+            </div>
+          </section>
+
+          <div class="home-note">
+            <span>⌁</span>
+            All information stays in this browser and remains available between sessions.
+          </div>
+        </section>
+
+        <section class="view session-view" id="sessionView" hidden>
+          <div class="page-heading">
+            <div>
+              <button class="back-button" data-go-view="home" type="button">← Main menu</button>
+              <p class="eyebrow">Live practice</p>
+              <h1>Session workspace</h1>
+              <p>Choose the student for each question before marking the result.</p>
+            </div>
+            <div class="page-actions">
+              <button class="button button-secondary" id="clearButton" type="button">
+                Clear current
+              </button>
+              <button class="button button-dark" id="endSessionButton" type="button">
+                End & save session
+              </button>
+            </div>
+          </div>
+
+          <section class="card session-setup">
+            <label>
+              <span>Session name</span>
+              <input id="sessionName" type="text" maxlength="60" value="Practice Session 1" />
+            </label>
+            <div class="session-progress">
+              <span class="live-pill"><i></i> In progress</span>
+              <strong><span id="sessionQuestionTotal">0</span> questions logged</strong>
+            </div>
+          </section>
+
+          <section class="session-grid">
+            <article class="card question-console">
+              <div class="card-heading">
+                <div>
+                  <p class="section-kicker">Question console</p>
+                  <h2>Question <span id="questionNumber">1</span></h2>
+                </div>
+                <span class="difficulty-chip" id="difficultyChip">Round 1 · Foundational</span>
+              </div>
+
+              <div class="student-question-row">
+                <label class="field student-field">
+                  <span>Student answering</span>
+                  <input
+                    id="studentName"
+                    type="text"
+                    maxlength="50"
+                    list="studentProfiles"
+                    autocomplete="off"
+                    placeholder="Enter or choose a student"
+                  />
+                  <datalist id="studentProfiles"></datalist>
+                </label>
+                <p>
+                  This name is saved onto this response. Switch students whenever needed.
+                </p>
+              </div>
+
+              <div class="question-meta question-meta-four">
+                <label class="field">
+                  <span>Question set</span>
+                  <input
+                    id="questionSet"
+                    type="text"
+                    maxlength="60"
+                    placeholder="e.g. 2026 Regionals"
+                  />
+                </label>
+
+                <label class="field">
+                  <span>Round</span>
+                  <input id="roundNumber" type="number" min="1" max="99" value="1" />
+                </label>
+
+                <label class="field">
+                  <span>Subject</span>
+                  <span class="select-wrap">
+                    <select id="subject">
+                      <option>Biology</option>
+                      <option>Chemistry</option>
+                      <option>Earth & Space</option>
+                      <option>Energy</option>
+                      <option>Mathematics</option>
+                      <option>Physics</option>
+                    </select>
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path d="m8 10 4 4 4-4" />
+                    </svg>
+                  </span>
+                </label>
+
+                <fieldset class="field question-type">
+                  <legend>Question type</legend>
+                  <div class="segment-control">
+                    <label>
+                      <input type="radio" name="questionType" value="Toss-up" checked />
+                      <span>Toss-up</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="questionType" value="Bonus" />
+                      <span>Bonus</span>
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+
+              <label class="field prompt-field">
+                <span>Question note <em>Optional</em></span>
+                <textarea
+                  id="questionNote"
+                  rows="2"
+                  maxlength="180"
+                  placeholder="e.g. Mitosis phase identification"
+                ></textarea>
+              </label>
+
+              <div class="response-label">
+                <span>Mark the response</span>
+                <span>Keyboard: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></span>
+              </div>
+
+              <div class="response-actions">
+                <button class="response-button correct" data-result="Correct" type="button">
+                  <span class="response-icon">✓</span>
+                  <span class="response-text">
+                    <strong>Correct</strong>
+                    <small>Student answered correctly</small>
+                  </span>
+                  <kbd>1</kbd>
+                </button>
+
+                <button class="response-button incorrect" data-result="Incorrect" type="button">
+                  <span class="response-icon">×</span>
+                  <span class="response-text">
+                    <strong>Incorrect</strong>
+                    <small>Student attempted</small>
+                  </span>
+                  <kbd>2</kbd>
+                </button>
+
+                <button class="response-button error" data-result="Error" type="button">
+                  <span class="response-icon">!</span>
+                  <span class="response-text">
+                    <strong>Error</strong>
+                    <small>Blurt, stall, etc.</small>
+                  </span>
+                  <kbd>3</kbd>
+                </button>
+
+                <button class="response-button nobody" data-result="Nobody tried" type="button">
+                  <span class="response-icon">–</span>
+                  <span class="response-text">
+                    <strong>Nobody tried</strong>
+                    <small>No student attempt</small>
+                  </span>
+                  <kbd>4</kbd>
+                </button>
+              </div>
+
+              <div class="error-detail-row">
+                <label class="field error-reason-field">
+                  <span>Error reason</span>
+                  <span class="select-wrap">
+                    <select id="errorReason">
+                      <option>Blurt</option>
+                      <option>Stall</option>
+                      <option>Interrupted</option>
+                      <option>Other</option>
+                    </select>
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path d="m8 10 4 4 4-4" />
+                    </svg>
+                  </span>
+                </label>
+                <p>Used only when <strong>Error</strong> is selected.</p>
+              </div>
+            </article>
+
+            <aside class="card session-pulse">
+              <div class="card-heading">
+                <div>
+                  <p class="section-kicker">This session</p>
+                  <h2>At a glance</h2>
+                </div>
+                <span class="date-chip" id="dateChip"></span>
+              </div>
+
+              <div class="accuracy-block">
+                <div class="accuracy-ring" id="accuracyRing">
+                  <div>
+                    <strong id="accuracyValue">—</strong>
+                    <span>accuracy</span>
+                  </div>
+                </div>
+                <div class="accuracy-copy">
+                  <p id="accuracyMessage">Log the first student attempt to begin.</p>
+                  <span id="answeredSummary">0 student attempts</span>
+                </div>
+              </div>
+
+              <div class="stat-grid">
+                <div class="stat-card correct-stat">
+                  <span class="stat-dot"></span>
+                  <strong id="correctCount">0</strong>
+                  <small>Correct</small>
+                </div>
+                <div class="stat-card incorrect-stat">
+                  <span class="stat-dot"></span>
+                  <strong id="incorrectCount">0</strong>
+                  <small>Incorrect</small>
+                </div>
+                <div class="stat-card error-stat">
+                  <span class="stat-dot"></span>
+                  <strong id="errorCount">0</strong>
+                  <small>Errors</small>
+                </div>
+                <div class="stat-card nobody-stat">
+                  <span class="stat-dot"></span>
+                  <strong id="nobodyCount">0</strong>
+                  <small>Nobody tried</small>
+                </div>
+              </div>
+
+              <div class="student-mini-list">
+                <div class="subheading-row">
+                  <h3>Students this session</h3>
+                  <span>Individual accuracy</span>
+                </div>
+                <div id="sessionStudentList" class="mini-list">
+                  <div class="empty-mini">Student results will appear here.</div>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <section class="card activity-card">
+            <div class="activity-heading">
+              <div>
+                <p class="section-kicker">Activity log</p>
+                <h2>Responses this session</h2>
+              </div>
+              <button class="text-button" id="undoButton" type="button" disabled>
+                ↶ Undo last
+              </button>
+            </div>
+
+            <div class="table-wrap session-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Set</th>
+                    <th>Round</th>
+                    <th>Subject</th>
+                    <th>Type</th>
+                    <th>Response</th>
+                    <th>Note</th>
+                    <th>Time</th>
+                    <th><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="activityBody"></tbody>
+              </table>
+              <div class="empty-state" id="emptyState">
+                <div class="empty-orb">∴</div>
+                <h3>No questions logged yet.</h3>
+                <p>Choose a student and mark the first response above.</p>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view data-view" id="dataView" hidden>
+          <div class="page-heading data-page-heading">
+            <div>
+              <button class="back-button" data-go-view="home" type="button">← Main menu</button>
+              <p class="eyebrow">Long-term workbook</p>
+              <h1>Student data</h1>
+              <p>Every response is attributed to the student who gave it.</p>
+            </div>
+            <button class="button button-dark" id="exportButton" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" />
+              </svg>
+              Export spreadsheet
+            </button>
+          </div>
+
+          <section class="data-overview">
+            <div class="overview-card">
+              <span>Students shown</span>
+              <strong id="dataStudentCount">0</strong>
+            </div>
+            <div class="overview-card">
+              <span>Questions shown</span>
+              <strong id="dataQuestionCount">0</strong>
+            </div>
+            <div class="overview-card">
+              <span>Combined accuracy</span>
+              <strong id="dataAccuracy">—</strong>
+            </div>
+            <div class="overview-card">
+              <span>Average round</span>
+              <strong id="dataAverageRound">—</strong>
+            </div>
+          </section>
+
+          <section class="card comparison-card">
+            <div class="comparison-heading">
+              <div>
+                <p class="section-kicker">Student comparison</p>
+                <h2>How students compare</h2>
+                <p>Uses the selected question set and subject filters.</p>
+              </div>
+              <label class="comparison-metric">
+                <span>Compare by</span>
+                <select id="comparisonMetric">
+                  <option value="accuracy">Accuracy</option>
+                  <option value="attempts">Questions attempted</option>
+                  <option value="correct">Correct answers</option>
+                  <option value="averageRound">Average round</option>
+                </select>
+              </label>
+            </div>
+            <div class="comparison-chart" id="comparisonChart">
+              <div class="comparison-empty">Log responses for two or more students to compare them.</div>
+            </div>
+            <p class="comparison-note" id="comparisonNote">
+              Click a student to open their individual workbook data.
+            </p>
+          </section>
+
+          <section class="card workbook">
+            <div class="workbook-toolbar">
+              <div>
+                <p class="section-kicker">Student summary</p>
+                <h2>Performance by student</h2>
+              </div>
+              <div class="data-filters">
+                <label>
+                  <span>Student</span>
+                  <select id="dataStudentFilter">
+                    <option value="__all__">All students</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Question set</span>
+                  <select id="dataSetFilter">
+                    <option value="__all__">All sets</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Subject</span>
+                  <select id="dataSubjectFilter">
+                    <option value="__all__">All subjects</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="sheet-wrap">
+              <table class="sheet-table summary-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Attempts</th>
+                    <th>Correct</th>
+                    <th>Incorrect</th>
+                    <th>Errors</th>
+                    <th>Accuracy</th>
+                    <th>Average round</th>
+                  </tr>
+                </thead>
+                <tbody id="studentSummaryBody"></tbody>
+              </table>
+              <div class="sheet-empty" id="studentSummaryEmpty" hidden>
+                No student records match these filters.
+              </div>
+            </div>
+          </section>
+
+          <section class="card workbook question-workbook">
+            <div class="workbook-toolbar">
+              <div>
+                <p class="section-kicker">Question ledger</p>
+                <h2>All recorded questions</h2>
+              </div>
+              <span class="sheet-count" id="ledgerCount">0 rows</span>
+            </div>
+
+            <div class="sheet-wrap ledger-wrap">
+              <table class="sheet-table ledger-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Student</th>
+                    <th>Session</th>
+                    <th>Set</th>
+                    <th>Round</th>
+                    <th>Difficulty</th>
+                    <th>Subject</th>
+                    <th>Type</th>
+                    <th>Response</th>
+                    <th>Error reason</th>
+                    <th>Question note</th>
+                  </tr>
+                </thead>
+                <tbody id="questionLedgerBody"></tbody>
+              </table>
+              <div class="sheet-empty" id="ledgerEmpty" hidden>
+                No questions match these filters.
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <footer>
+        <p>Built for quick decisions and curious minds.</p>
+        <p>Data stays in this browser.</p>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span id="toastIcon"></span>
+      <span id="toastMessage"></span>
+    </div>
+
+    <div class="modal-backdrop" id="confirmModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-icon" id="modalIcon">✓</div>
+        <h2 id="modalTitle">End and save this session?</h2>
+        <p id="modalCopy">
+          The responses will remain available in the student workbook.
+        </p>
+        <div class="modal-actions">
+          <button class="button button-secondary" id="cancelModal" type="button">Cancel</button>
+          <button class="button button-dark" id="confirmModalButton" type="button">
+            End & save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js?v=4"></script>
+  </body>
+</html>
