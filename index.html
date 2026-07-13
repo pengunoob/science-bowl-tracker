@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=3" />
+    <link rel="stylesheet" href="styles.css?v=4" />
   </head>
   <body>
     <div class="app-shell">
@@ -526,6 +526,72 @@
               </div>
             </div>
           </section>
+
+          <section class="card clear-data-card">
+            <div class="clear-data-heading">
+              <div>
+                <p class="section-kicker">Clear data</p>
+                <h2>Remove saved records</h2>
+                <p>
+                  Clear one question, one student's records, or the entire spreadsheet.
+                </p>
+              </div>
+              <span class="danger-chip">Confirm before clearing</span>
+            </div>
+
+            <div class="clear-data-grid">
+              <article class="clear-option">
+                <h3>One question</h3>
+                <p>Deletes one selected row from the workbook and updates the stats.</p>
+                <label>
+                  <span>Question row</span>
+                  <select id="clearQuestionSelect">
+                    <option value="">No questions logged</option>
+                  </select>
+                </label>
+                <button
+                  class="button button-secondary danger-button"
+                  id="clearQuestionButton"
+                  type="button"
+                  disabled
+                >
+                  Clear question
+                </button>
+              </article>
+
+              <article class="clear-option">
+                <h3>One student</h3>
+                <p>Deletes every recorded response for the selected student.</p>
+                <label>
+                  <span>Student</span>
+                  <select id="clearStudentSelect">
+                    <option value="">No students logged</option>
+                  </select>
+                </label>
+                <button
+                  class="button button-secondary danger-button"
+                  id="clearStudentButton"
+                  type="button"
+                  disabled
+                >
+                  Clear student
+                </button>
+              </article>
+
+              <article class="clear-option clear-all-option">
+                <h3>Entire spreadsheet</h3>
+                <p>Deletes all sessions and all question rows saved in this browser.</p>
+                <button
+                  class="button button-secondary danger-button"
+                  id="clearAllDataButton"
+                  type="button"
+                  disabled
+                >
+                  Clear everything
+                </button>
+              </article>
+            </div>
+          </section>
         </section>
       </main>
 
@@ -556,6 +622,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=5"></script>
   </body>
 </html>

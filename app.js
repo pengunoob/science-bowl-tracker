@@ -99,6 +99,11 @@ const elements = {
   questionLedgerBody: document.querySelector("#questionLedgerBody"),
   ledgerEmpty: document.querySelector("#ledgerEmpty"),
   ledgerCount: document.querySelector("#ledgerCount"),
+  clearQuestionSelect: document.querySelector("#clearQuestionSelect"),
+  clearQuestionButton: document.querySelector("#clearQuestionButton"),
+  clearStudentSelect: document.querySelector("#clearStudentSelect"),
+  clearStudentButton: document.querySelector("#clearStudentButton"),
+  clearAllDataButton: document.querySelector("#clearAllDataButton"),
   toast: document.querySelector("#toast"),
   toastIcon: document.querySelector("#toastIcon"),
   toastMessage: document.querySelector("#toastMessage"),
@@ -221,15 +226,19 @@ function init() {
     day: "numeric",
   }).format(new Date());
 
+  syncInputsFromState();
+
+  bindEvents();
+  renderAll();
+  setView("home");
+}
+
+function syncInputsFromState() {
   elements.sessionName.value = state.currentSession.name;
   elements.studentName.value = state.draft.student;
   elements.questionSet.value = state.draft.setName;
   elements.roundNumber.value = state.draft.round;
   elements.subject.value = state.draft.subject;
-
-  bindEvents();
-  renderAll();
-  setView("home");
 }
 
 function bindEvents() {
@@ -274,6 +283,24 @@ function bindEvents() {
   elements.clearButton.addEventListener("click", () => openModal("clear"));
   elements.endSessionButton.addEventListener("click", () => openModal("end"));
   elements.exportButton.addEventListener("click", exportSpreadsheet);
+
+  elements.clearQuestionButton.addEventListener("click", () => {
+    const responseId = elements.clearQuestionSelect.value;
+    const record = getAllRecords().find(({ response }) => response.id === responseId);
+    if (!record) return;
+    openModal("clear-question", {
+      responseId,
+      label: formatQuestionOption(record),
+    });
+  });
+
+  elements.clearStudentButton.addEventListener("click", () => {
+    const student = elements.clearStudentSelect.value;
+    if (!student) return;
+    openModal("clear-student", { student });
+  });
+
+  elements.clearAllDataButton.addEventListener("click", () => openModal("clear-all"));
 
   elements.activityBody.addEventListener("click", (event) => {
     const deleteButton = event.target.closest("[data-delete-id]");
@@ -452,9 +479,69 @@ function findResponse(id) {
 }
 
 function renumberCurrentResponses() {
-  state.currentSession.responses.forEach((response, index) => {
+  renumberResponses(state.currentSession);
+}
+
+function renumberResponses(session) {
+  session.responses.forEach((response, index) => {
     response.number = index + 1;
   });
+}
+
+function pruneEmptySavedSessions() {
+  state.sessions = state.sessions.filter((session) => session.responses.length);
+}
+
+function removeMatchingResponses(session, matcher) {
+  const before = session.responses.length;
+  session.responses = session.responses.filter((response) => !matcher(response));
+  if (session.responses.length !== before) renumberResponses(session);
+  return before - session.responses.length;
+}
+
+function clearQuestionById(responseId) {
+  let removed = removeMatchingResponses(
+    state.currentSession,
+    (response) => response.id === responseId
+  );
+
+  if (!removed) {
+    for (const session of state.sessions) {
+      removed = removeMatchingResponses(session, (response) => response.id === responseId);
+      if (removed) break;
+    }
+  }
+
+  if (!removed) return 0;
+  pruneEmptySavedSessions();
+  saveState();
+  renderAll();
+  return removed;
+}
+
+function clearStudentData(student) {
+  const target = canonical(student);
+  const matcher = (response) => canonical(response.student) === target;
+  let removed = removeMatchingResponses(state.currentSession, matcher);
+
+  state.sessions.forEach((session) => {
+    removed += removeMatchingResponses(session, matcher);
+  });
+
+  if (!removed) return 0;
+  pruneEmptySavedSessions();
+  if (canonical(state.filters.student) === target) state.filters.student = ALL;
+  saveState();
+  renderAll();
+  return removed;
+}
+
+function clearAllWorkbookData() {
+  state = createDefaultState();
+  syncInputsFromState();
+  saveState();
+  renderAll();
+  setView("data");
 }
 
 function countResults(responses) {
@@ -726,6 +813,7 @@ function getComparisonRecords() {
 
 function renderData() {
   renderDataOptions();
+  renderClearDataControls();
   const records = getFilteredRecords();
   const responses = records.map(({ response }) => response);
   const counts = countResults(responses);
@@ -750,6 +838,51 @@ function renderData() {
   renderComparison();
   renderStudentSummary(studentStats);
   renderQuestionLedger(records);
+}
+
+function renderClearDataControls() {
+  const records = getAllRecords().sort(
+    (a, b) =>
+      new Date(b.response.timestamp).getTime() - new Date(a.response.timestamp).getTime()
+  );
+  const students = getStudentNames(records);
+  const previousQuestion = elements.clearQuestionSelect.value;
+  const previousStudent = elements.clearStudentSelect.value;
+
+  elements.clearQuestionSelect.innerHTML = records.length
+    ? records
+        .map(
+          (record) =>
+            `<option value="${escapeHTML(record.response.id)}">${escapeHTML(formatQuestionOption(record))}</option>`
+        )
+        .join("")
+    : '<option value="">No questions logged</option>';
+  elements.clearQuestionButton.disabled = records.length === 0;
+  if (records.some(({ response }) => response.id === previousQuestion)) {
+    elements.clearQuestionSelect.value = previousQuestion;
+  }
+
+  elements.clearStudentSelect.innerHTML = students.length
+    ? students
+        .map((student) => `<option value="${escapeHTML(student)}">${escapeHTML(student)}</option>`)
+        .join("")
+    : '<option value="">No students logged</option>';
+  elements.clearStudentButton.disabled = students.length === 0;
+  if (students.some((student) => canonical(student) === canonical(previousStudent))) {
+    elements.clearStudentSelect.value = previousStudent;
+  }
+
+  elements.clearAllDataButton.disabled = records.length === 0;
+}
+
+function formatQuestionOption({ session, response }) {
+  const date = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(response.timestamp));
+  const student = response.student || "Nobody tried";
+  const round = response.round ? `Round ${response.round}` : "Round ?";
+  return `${date} - ${student} - ${session.name} - ${response.setName} - ${round} - Q${response.number} - ${response.result}`;
 }
 
 function renderComparison() {
@@ -887,20 +1020,39 @@ function renderQuestionLedger(records) {
     .join("");
 }
 
-function openModal(action) {
-  pendingAction = action;
+function openModal(action, payload = {}) {
+  pendingAction = { action, ...payload };
+  elements.confirmModal.classList.toggle("danger-modal", action !== "end");
   if (action === "end") {
     elements.modalIcon.textContent = "✓";
     elements.modalTitle.textContent = "End and save this session?";
     elements.modalCopy.textContent =
       "The responses will remain available in the student workbook, and a fresh session will be prepared.";
     elements.confirmModalButton.textContent = "End & save";
-  } else {
+  } else if (action === "clear") {
     elements.modalIcon.textContent = "×";
     elements.modalTitle.textContent = "Clear the current session?";
     elements.modalCopy.textContent =
       "Every response in this in-progress session will be removed. Saved sessions will not be affected.";
     elements.confirmModalButton.textContent = "Clear session";
+  } else if (action === "clear-question") {
+    elements.modalIcon.textContent = "×";
+    elements.modalTitle.textContent = "Clear this question?";
+    elements.modalCopy.textContent =
+      `${payload.label || "This question"} will be removed from the workbook and all stats. This cannot be undone.`;
+    elements.confirmModalButton.textContent = "Clear question";
+  } else if (action === "clear-student") {
+    elements.modalIcon.textContent = "×";
+    elements.modalTitle.textContent = `Clear ${payload.student}'s data?`;
+    elements.modalCopy.textContent =
+      `Every response attributed to ${payload.student} will be removed from the workbook. Other students' rows will stay. This cannot be undone.`;
+    elements.confirmModalButton.textContent = "Clear student";
+  } else if (action === "clear-all") {
+    elements.modalIcon.textContent = "×";
+    elements.modalTitle.textContent = "Clear the entire spreadsheet?";
+    elements.modalCopy.textContent =
+      "All sessions, students, and question rows saved in this browser will be deleted. This cannot be undone.";
+    elements.confirmModalButton.textContent = "Clear everything";
   }
   elements.confirmModal.hidden = false;
   elements.confirmModalButton.focus();
@@ -908,11 +1060,15 @@ function openModal(action) {
 
 function closeModal() {
   elements.confirmModal.hidden = true;
+  elements.confirmModal.classList.remove("danger-modal");
   pendingAction = null;
 }
 
 function confirmModalAction() {
-  if (pendingAction === "end") {
+  if (!pendingAction) return;
+  const action = pendingAction.action;
+
+  if (action === "end") {
     state.currentSession.name =
       elements.sessionName.value.trim() || `Practice Session ${state.sessions.length + 1}`;
     state.currentSession.completedAt = new Date().toISOString();
@@ -930,12 +1086,39 @@ function confirmModalAction() {
     return;
   }
 
-  if (pendingAction === "clear") {
+  if (action === "clear") {
     state.currentSession.responses = [];
     saveState();
     renderAll();
     closeModal();
     showToast("×", "Current session cleared");
+    return;
+  }
+
+  if (action === "clear-question") {
+    const removed = clearQuestionById(pendingAction.responseId);
+    closeModal();
+    showToast(removed ? "×" : "!", removed ? "Question cleared" : "Question was already cleared");
+    return;
+  }
+
+  if (action === "clear-student") {
+    const student = pendingAction.student;
+    const removed = clearStudentData(student);
+    closeModal();
+    showToast(
+      removed ? "×" : "!",
+      removed
+        ? `${removed} ${removed === 1 ? "row" : "rows"} cleared for ${student}`
+        : `No rows found for ${student}`
+    );
+    return;
+  }
+
+  if (action === "clear-all") {
+    clearAllWorkbookData();
+    closeModal();
+    showToast("×", "Entire spreadsheet cleared");
   }
 }
 
