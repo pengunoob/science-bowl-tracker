@@ -1,5 +1,13 @@
 const STORAGE_KEY = "quark-science-bowl-tracker-v1";
 const ALL = "__all__";
+const SUBJECTS = [
+  "Biology",
+  "Chemistry",
+  "Earth & Space",
+  "Energy",
+  "Mathematics",
+  "Physics",
+];
 
 function createId() {
   return crypto.randomUUID();
@@ -31,6 +39,7 @@ function createDefaultState() {
       setName: ALL,
       subject: ALL,
       comparisonMetric: "accuracy",
+      subjectStrength: ALL,
     },
   };
 }
@@ -90,6 +99,8 @@ const elements = {
   comparisonMetric: document.querySelector("#comparisonMetric"),
   comparisonChart: document.querySelector("#comparisonChart"),
   comparisonNote: document.querySelector("#comparisonNote"),
+  subjectStrengthFilter: document.querySelector("#subjectStrengthFilter"),
+  subjectStrengthGrid: document.querySelector("#subjectStrengthGrid"),
   dataStudentCount: document.querySelector("#dataStudentCount"),
   dataQuestionCount: document.querySelector("#dataQuestionCount"),
   dataAccuracy: document.querySelector("#dataAccuracy"),
@@ -355,6 +366,25 @@ function bindEvents() {
     state.filters.student = row.dataset.compareStudent;
     saveState();
     renderData();
+  });
+
+  elements.subjectStrengthFilter.addEventListener("change", (event) => {
+    state.filters.subjectStrength = event.target.value;
+    saveState();
+    renderSubjectStrengths();
+  });
+
+  elements.subjectStrengthGrid.addEventListener("click", (event) => {
+    const row = event.target.closest("[data-strength-student]");
+    if (!row) return;
+    state.filters.student = row.dataset.strengthStudent;
+    state.filters.subject = row.dataset.strengthSubject;
+    saveState();
+    renderData();
+    elements.studentSummaryBody.closest(".workbook").scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   });
 
   elements.cancelModal.addEventListener("click", closeModal);
@@ -836,6 +866,7 @@ function renderData() {
   elements.exportButton.disabled = records.length === 0;
 
   renderComparison();
+  renderSubjectStrengths();
   renderStudentSummary(studentStats);
   renderQuestionLedger(records);
 }
@@ -954,6 +985,104 @@ function renderComparison() {
 
   elements.comparisonNote.textContent =
     `${metricLabels[metric]} comparison · Click a student to open their individual data.`;
+}
+
+function renderSubjectStrengths() {
+  const records = getAllRecords().filter(({ response }) =>
+    state.filters.setName === ALL || response.setName === state.filters.setName
+  );
+  const availableSubjects = [...new Set([
+    ...SUBJECTS,
+    ...records.map(({ response }) => response.subject),
+  ])];
+
+  if (
+    state.filters.subjectStrength !== ALL &&
+    !availableSubjects.includes(state.filters.subjectStrength)
+  ) {
+    state.filters.subjectStrength = ALL;
+  }
+
+  elements.subjectStrengthFilter.innerHTML = `
+    <option value="${ALL}">All subjects</option>
+    ${availableSubjects
+      .map((subject) => `<option value="${escapeHTML(subject)}">${escapeHTML(subject)}</option>`)
+      .join("")}
+  `;
+  elements.subjectStrengthFilter.value = state.filters.subjectStrength;
+
+  const subjectsToShow =
+    state.filters.subjectStrength === ALL
+      ? availableSubjects
+      : [state.filters.subjectStrength];
+
+  elements.subjectStrengthGrid.innerHTML = subjectsToShow
+    .map((subject) => {
+      const students = groupStudentStats(
+        records
+          .filter(({ response }) => response.subject === subject)
+          .map(({ response }) => response)
+      )
+        .filter((student) => student.counts.attempted > 0)
+        .map((student) => {
+          const rounds = student.responses
+            .map((response) => response.round)
+            .filter((round) => Number.isFinite(round));
+          const averageRound = rounds.length
+            ? rounds.reduce((sum, round) => sum + round, 0) / rounds.length
+            : 0;
+          return {
+            ...student,
+            averageRound,
+            exactAccuracy: student.counts.Correct / student.counts.attempted,
+          };
+        })
+        .sort(
+          (a, b) =>
+            b.exactAccuracy - a.exactAccuracy ||
+            b.counts.Correct - a.counts.Correct ||
+            b.counts.attempted - a.counts.attempted ||
+            b.averageRound - a.averageRound ||
+            a.name.localeCompare(b.name)
+        );
+      const leaders = students.slice(0, 3);
+
+      return `
+        <article class="subject-leader-card">
+          <div class="subject-leader-title">
+            <h3>${escapeHTML(subject)}</h3>
+            <span>${students.length} ${students.length === 1 ? "student" : "students"}</span>
+          </div>
+          <div class="subject-leader-list">
+            ${
+              leaders.length
+                ? leaders
+                    .map(
+                      (student, index) => `
+                        <button
+                          class="subject-leader-row"
+                          data-strength-student="${escapeHTML(student.name)}"
+                          data-strength-subject="${escapeHTML(subject)}"
+                          type="button"
+                          aria-label="View ${escapeHTML(student.name)} in ${escapeHTML(subject)}"
+                        >
+                          <span class="subject-leader-rank">${index + 1}</span>
+                          <span class="subject-leader-student">
+                            <strong>${escapeHTML(student.name)}</strong>
+                            <small>${student.counts.Correct} of ${student.counts.attempted} correct · avg. round ${student.averageRound.toFixed(1).replace(".0", "")}</small>
+                          </span>
+                          <strong class="subject-leader-accuracy">${student.counts.accuracy}%</strong>
+                        </button>
+                      `
+                    )
+                    .join("")
+                : '<div class="subject-leader-empty">No student attempts yet.</div>'
+            }
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderStudentSummary(studentStats) {

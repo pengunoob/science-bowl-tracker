@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="styles.css?v=5" />
   </head>
   <body>
     <div class="app-shell">
@@ -444,6 +444,28 @@
             </p>
           </section>
 
+          <section class="card subject-strength-card">
+            <div class="subject-strength-heading">
+              <div>
+                <p class="section-kicker">Subject strengths</p>
+                <h2>Strongest students by subject</h2>
+                <p>Ranks students by accuracy, then correct answers, attempts, and average round.</p>
+              </div>
+              <label class="subject-strength-filter">
+                <span>Show</span>
+                <select id="subjectStrengthFilter">
+                  <option value="__all__">All subjects</option>
+                </select>
+              </label>
+            </div>
+            <div class="subject-strength-grid" id="subjectStrengthGrid">
+              <div class="comparison-empty">Log student attempts to see subject leaders.</div>
+            </div>
+            <p class="subject-strength-note">
+              Each percentage is based on student attempts only. Nobody-tried questions are excluded.
+            </p>
+          </section>
+
           <section class="card workbook">
             <div class="workbook-toolbar">
               <div>
@@ -622,6 +644,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
   </body>
 </html>
